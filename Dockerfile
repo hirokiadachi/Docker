@@ -13,15 +13,8 @@ RUN rm -rf /var/lib/apt/lists/*\
             /etc/apt/source.list.d/cuda.list\
             /etc/apt/source.list.d/nvidia-ml.list
 
-RUN apt-get update
-#  && apt-get install -y --no-install-recommends python3-dev python3-pip \
-#  && pip3 install setuptools && pip3 install --upgrade pip \
-#  && apt-get install -y --no-install-recommends git m4 autoconf automake libtool flex \
-#  && apt-get install -y --no-install-recommends ssh \
-#  && apt-get install -yq make cmake gcc g++ unzip wget build-essential gcc zlib1g-dev\
-#  && apt-get clean
-
-RUN apt-get -y install build-essential\
+RUN apt-get update\
+ && apt-get -y install build-essential\
                        apt-utils\
                        ca-certificates\
                        cmake\
@@ -75,7 +68,6 @@ cmake -D CMAKE_BUILD_TYPE=RELEASE \
 ######################################
 
 RUN pip install chainer==${CHAINER_VERSION}
-#RUN pip3 install cython && pip3 install chainermn
 
 ######################################
 # pytorch

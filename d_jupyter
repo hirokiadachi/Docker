@@ -1,0 +1,15 @@
+#!/bin/sh
+
+# ポート番号の選択
+read -p "Please input port name: " port
+# Docker imageの選択
+read -p "Waht is kind of docker image?: " docker_image
+
+docker run --runtime=nvidia -it --rm -p $port:8888 \
+       -v /data1/ha618:/root \
+       --ipc=host $docker_image jupyter notebook \
+       --no-browser \
+       --ip=0.0.0.0 \
+       --allow-root \
+       --NotebookApp.token= \
+       --notebook-dir='/root'
