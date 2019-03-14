@@ -67,7 +67,8 @@ cmake -D CMAKE_BUILD_TYPE=RELEASE \
 # chainer
 ######################################
 
-RUN pip install chainer==${CHAINER_VERSION}
+RUN pip install chainer\
+ && pip install cupy
 
 ######################################
 # pytorch
