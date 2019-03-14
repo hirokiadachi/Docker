@@ -1,1 +1,2 @@
-#Docker
+# Docker
+* cupyのインストールの追記
