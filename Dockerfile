@@ -90,6 +90,11 @@ RUN pip install future \
 RUN pip install torch==${PYTORCH_VERSION} torchvision
 
 ######################################
+# bh-sne
+######################################
+RUN pip install git+https://github.com/alexisbcook/tsne.git
+
+######################################
 # jupyter
 ######################################
 RUN pip install jupyter
