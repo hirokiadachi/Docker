@@ -107,8 +107,10 @@ RUN pip install tensorflow-gpu
 ######################################
 # Open3d
 ######################################
-RUN pip install open3d-python\
-      && apt-get install install -y libgl1-mesa-dev\
-      && apt-get install unzip
+RUN pip install -U pip
+RUN pip install open3d-python
+RUN apt-get update
+RUN apt-get install -y libgl1-mesa-dev
+RUN apt-get install unzip
 
 EXPOSE 8888 6006
