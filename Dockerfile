@@ -104,4 +104,11 @@ RUN pip install jupyter
 ######################################
 RUN pip install tensorflow-gpu
 
+######################################
+# Open3d
+######################################
+RUN pip install open3d-python\
+      && apt-get install install -y libgl1-mesa-dev\
+      && apt-get install unzip
+
 EXPOSE 8888 6006
