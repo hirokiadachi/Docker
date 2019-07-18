@@ -6,7 +6,6 @@ ENV CUDA_PATH=/usr/local/cuda
 ENV PATH=$CUDA_PATH/bin:$PATH
 ENV CPATH=$CUDA_PATH/include:$CPATH
 ENV LD_LIBRARY_PATH=$CUDA_PATH/lib64:$CUDA_PATH/lib:$LD_LIBRARY_PATH
-ENV PYTORCH_VERSION=0.4.1
 ENV CHAINER_VERSION=3.0.0
 
 RUN rm -rf /var/lib/apt/lists/*\
@@ -35,7 +34,8 @@ RUN apt-get update\
   && ln -s /usr/bin/python3.6 /usr/local/bin/python3\
   && ln -s /usr/bin/python3.6 /usr/local/bin/python\
   && pip install setuptools \
-  && pip install numpy scipy pandas cloudpickle scikit-learn matplotlib Cython seaborn
+  && pip install numpy scipy pandas cloudpickle scikit-learn matplotlib Cython seaborn\
+  && pip install lmdb
 
 ######################################
 # OpenCV
@@ -87,7 +87,8 @@ RUN pip install future \
      && pip install scipy\
      && pip install pandas
 
-RUN pip install torch==${PYTORCH_VERSION} torchvision
+RUN pip install torch\
+                torchvision
 
 ######################################
 # bh-sne
@@ -97,12 +98,13 @@ RUN pip install git+https://github.com/alexisbcook/tsne.git
 ######################################
 # jupyter
 ######################################
-RUN pip install jupyter
+RUN pip install jupyter \
+     && pip install jupyter-tensorboard
 
 ######################################
 # tensorflow
 ######################################
-RUN pip install tensorflow-gpu
+RUN pip install tensorflow-gpu tensorboard
 
 ######################################
 # Open3d
