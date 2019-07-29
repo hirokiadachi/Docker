@@ -1,5 +1,10 @@
 FROM nvidia/cuda:9.0-cudnn7-devel-ubuntu16.04
 
+ENV WORK_DIR=/root
+WORKDIR $WORK_DIR
+
+ADD ./set_jupyter_lab.sh $WORK_DIR
+
 ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 ENV CPATH=/usr/local/include:$CPATH
 ENV CUDA_PATH=/usr/local/cuda
@@ -79,7 +84,7 @@ RUN pip install future \
      && pip install enum34\
      && pip install pyyaml \
      && pip install typing\
-     && pip install torchvision_nightly\
+     #&& pip install torchvision_nightly\
      && pip install pillow\
      && pip install matplotlib\
      && pip install scikit-learn\
