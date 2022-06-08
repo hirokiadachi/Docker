@@ -54,6 +54,16 @@ do
   fi
 done
 
+read -p "Do you use sudo and authorize user? (y/n): " SUDO
+while :
+do
+  if [ "$SUDO" = "Y" ] || [ "$SUDO" = "y" ] || [ "$SUDO" = "N" ] || [ "$SUDO" = "n" ]; then
+    break
+  else
+    read -p "Do you use sudo and authorize user? (y/n): " SUDO
+  fi
+done
+
 read -p "Type password: " PW
 while :
 do
@@ -63,21 +73,6 @@ do
     read -p "Type password: " PW
   fi
 done
-
-echo \
-"#!/bin/bash
-
-USER_ID=\${LOCAL_UID:-9001}
-GROUP_ID=\${LOCAL_GID:-9001}
-
-echo "Starting with UID : $USER_ID, GID: $GROUP_ID"
-useradd -u $USER_ID -o -m user
-groupmod -g $GROUP_ID user
-export HOME=/home/user
-
-exec /usr/sbin/gosu user "$@"
-"
-
 
 echo \
 "#####################################################################
@@ -104,8 +99,6 @@ ARG GID=$GID
 ARG USER_NAME=$USER_NAME
 ARG PASSWORD=$PW
 ARG PYTHON_VERSION=python3.7
-
-RUN useradd -m -s /bin/bash -u \${UID} \${USER_NAME}
 
 ENV LD_LIBRARY_PATH=/usr/local/lib:\${LD_LIBRARY_PATH}
 ENV CPATH=/usr/local/include:\${CPATH}
@@ -138,8 +131,19 @@ RUN apt-get install -y --no-install-recommends build-essential\\
                                                git\\
                                                curl\\
                                                vim\\
-                                               openssh-server
+                                               openssh-server" >> $FILE_NAME
 
+if [ "$SUDO" = "y" ] || [ "$SUDO" = "Y" ]; then
+echo \
+"RUN apt-get -y --no-install-recommends sudo\\
+RUN groupadd -g \${GID} \${USER_NAME} && \\
+    useradd -m -s /bin/bash -u \${UID} -g \${GID} -G sudo \${USER_NAME} && \\
+    echo \"\${USER_NAME}:\${USER_NAME}\" | chpasswd && \\
+    echo \"%\${USER_NAME}    ALL=(ALL)   NOPASSWD:    ALL\"  >> /etc/sudoers" >> $FILE_NAME
+fi
+
+echo \
+"
 RUN curl -sL https://deb.nodesource.com/setup_current.x | bash - && \\
     apt-get install -y --no-install-recommends nodejs
 
