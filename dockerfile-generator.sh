@@ -105,12 +105,7 @@ ARG USER_NAME=$USER_NAME
 ARG PASSWORD=$PW
 ARG PYTHON_VERSION=python3.7
 
-COPY /etc/group:/etc/group
-COPY /etc/passwd:/etc/passwd
-
-RUN useradd -m -s /bin/bash -u \${UID} -g \${GID} -G sudo \${USER_NAME}\\
-    echo \$USER_NAME:\$PASSWORD | chpasswd && \\
-    echo \"\$USER_NAME   ALL=(ALL) NOPASSWD:ALL\" >> /etc/sudoers
+RUN useradd -m -s /bin/bash -u \${UID} \${USER_NAME}
 
 ENV LD_LIBRARY_PATH=/usr/local/lib:\${LD_LIBRARY_PATH}
 ENV CPATH=/usr/local/include:\${CPATH}
