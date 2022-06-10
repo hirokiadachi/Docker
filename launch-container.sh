@@ -10,6 +10,16 @@ do
   fi
 done
 
+read -p "Type User ID: " ID
+while :
+do
+  if [ -z "$ID" ]; then
+    read -p "Type User ID: " ID
+  else
+    break
+  fi
+done
+
 read -p "Which directories mounts to the container?: " MOUNT_DIR
 while :
 do
@@ -94,13 +104,13 @@ done
 
 if [ "$JUPYTER" = "y" ] || [ "$JUPYTER" = "Y" ]; then
     echo "Build docker container with $DOCKER_IMAGE and launch jupyter lab in the container"
-    docker run --runtime=nvidia --shm-size=8g --rm -it -u 1001:1001 -p $PORT:8888 \
+    docker run --runtime=nvidia --shm-size=8g --rm -it -u $ID:$ID -p $PORT:8888 \
         -v $MOUNT_DIR:/home/workspace --ipc=host --name $CONTAINER_NAME \
         $DOCKER_IMAGE\
         jupyter lab --no-browser --ip=0.0.0.0 --allow-root --NotebookApp.token= --notebook-dir='/home'
 else
     echo "Build docker container with $DOCKER_IMAGE"
-    docker run --runtime=nvidia --shm-size=8g --rm -it -u 1001:1001 -p $PORT:8888 \
+    docker run --runtime=nvidia --shm-size=8g --rm -it -u $ID:$ID -p $PORT:8888 \
         -v $MOUNT_DIR:/home/workspace --ipc=host --name $CONTAINER_NAME \
         $DOCKER_IMAGE
 fi

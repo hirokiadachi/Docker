@@ -6,15 +6,15 @@
 #   docker run --runtim=nvidia --rm -it -u {USER ID}:{GROUP ID} -p {PORT NUM}:8888 -v {local dir}:/home/{USER NAME} --ipc=host --name {CONTAINER NAME} {REPOSITORY}:{TAG}
 #####################################################################
 
-# =====================================================================
+# =========================================
 # Set Versions
 # =========================================
-FROM nvidia/cuda:10.2-cudnn7-devel-ubuntu18.04
+FROM nvidia/cuda:11.4.2-cudnn8-devel-ubuntu20.04
 ARG UID=****
 ARG GID=****
 ARG USER_NAME=****
 ARG PASSWORD=****
-ARG PYTHON_VERSION=python3.7
+ARG PYTHON_VERSION=python.xxx
 
 ENV LD_LIBRARY_PATH=/usr/local/lib:${LD_LIBRARY_PATH}
 ENV CPATH=/usr/local/include:${CPATH}
@@ -46,15 +46,14 @@ RUN apt-get install -y --no-install-recommends build-essential\
                                                curl\
                                                vim\
                                                openssh-server
-RUN apt-get -y --no-install-recommends sudo\
+
+RUN apt-get install -y --no-install-recommends sudo
 RUN groupadd -g ${GID} ${USER_NAME} && \
     useradd -m -s /bin/bash -u ${UID} -g ${GID} -G sudo ${USER_NAME} && \
     echo "${USER_NAME}:${USER_NAME}" | chpasswd && \
     echo "%${USER_NAME}    ALL=(ALL)   NOPASSWD:    ALL"  >> /etc/sudoers
 
-RUN curl -sL https://deb.nodesource.com/setup_current.x | bash - && \
-    apt-get install -y --no-install-recommends nodejs
-
+RUN curl -sL https://deb.nodesource.com/setup_12.x | bash -     && apt-get install -y nodejs
 RUN apt-get autoremove -y
 RUN apt-get clean
 RUN rm -rf /var/lib/apt/lists/* \
@@ -107,17 +106,24 @@ cmake -D CMAKE_BUILD_TYPE=RELEASE \
 # =======================================================
 COPY requirements.txt $WORK_DIR
 RUN pip install -r requirements.txt &&\
-    pip install bhtsne
+    pip install bhtsne \
+    pip install 'python-lsp-server[all]'
 
 # =========================================
 # Jupyter setting
 # =========================================
-RUN pip install --upgrade --no-cache-dir \
-    'jupyterlab-kite>=2.0.2' \
-    jupyterlab_code_formatter \
-    jupyterlab-vimrc \
-    yapf \
- && rm -rf ~/.cache/pip
+RUN jupyter labextension install @jupyterlab/toc \
+    @axlair/jupyterlab_vim \
+    @ryantam626/jupyterlab_code_formatter \
+    @jupyter-widgets/jupyterlab-manager \
+    jupyterlab-plotly@4.14.3 \
+    jupyterlab-vimrc
+RUN jupyter nbextensions_configurator enable
+RUN jupyter labextension enable toc jupyterlab-manager
+RUN jupyter serverextension enable --py jupyterlab_code_formatter
+RUN jupyter notebook --generate-config --allow-root
+RUN ipython profile create
+RUN rm -rf ~/.cache/pip
  
 WORKDIR /
 COPY jupyter_lab_config.py /root/.jupyter/
