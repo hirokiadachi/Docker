@@ -1,10 +1,10 @@
 #!/bin/sh
 
-read -p "Type port name: " PORT
+read -p "Type port number: " PORT
 while :
 do
   if [ -z "$PORT" ]; then
-    read -p "Type port name: " PORT
+    read -p "Type port number: " PORT
   else
     break
   fi
