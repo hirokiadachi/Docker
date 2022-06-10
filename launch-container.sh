@@ -10,6 +10,7 @@ do
   fi
 done
 
+id
 read -p "Type User ID: " ID
 while :
 do
