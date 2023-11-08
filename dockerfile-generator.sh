@@ -30,14 +30,14 @@ do
   fi
 done
 
-read -p "Select cuda version (10.2/11.4.2): " CUDA_VER
+read -p "Select cuda version (10.2/11.7.1): " CUDA_VER
 while :
 do
-  if [ "$CUDA_VER" = "10.2" ] || [ "$CUDA_VER" = "11.4.2" ]; then
+  if [ "$CUDA_VER" = "10.2" ] || [ "$CUDA_VER" = "11.7.1" ]; then
     echo "==> Use cuda version: $CUDA_VER"
     break
   else
-    read -p "Select cuda version (10.2/11.4.2): " CUDA_VER
+    read -p "Select cuda version (10.2/11.7.1): " CUDA_VER
   fi
 done
 
@@ -96,7 +96,7 @@ done
 if [ "$UBUNTU_VER" = "18.04" ]; then
   PYTHON_VER=python3.7
 elif [ "$UBUNTU_VER" = "20.04" ]; then
-  PYTHON_VER=python3.8
+  PYTHON_VER=python3.7
 fi
 
 echo \
@@ -132,7 +132,8 @@ ENV CPATH=\${CUDA_PATH}/include:\${CPATH}
 ENV LD_LIBRARY_PATH=\${CUDA_PATH}/lib64:\${CUDA_PATH}/lib:\${LD_LIBRARY_PATH}
 ENV DEBIAN_FRONTEND=noninteractive
 ENV WORK_DIR=/root/\${USER_NAME}
-WORKDIR \$WORK_DIR" >> $FILE_NAME
+WORKDIR \$WORK_DIR
+RUN ln -sf /usr/share/zoneinfo/Asia/Tokyo /etc/localtime" >> $FILE_NAME
 
 echo \
 "
@@ -145,7 +146,8 @@ RUN rm -rf /var/lib/apt/lists/*\\
 
 RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/3bf863cc.pub
 RUN apt-get update -y &&\\
-    apt-get upgrade -y
+    apt-get upgrade -y &&\\
+    apt-get install -y libgl1-mesa-dev
  
 RUN apt-get install -y --no-install-recommends build-essential\\
                                                apt-utils\\
@@ -156,6 +158,7 @@ RUN apt-get install -y --no-install-recommends build-essential\\
                                                git\\
                                                curl\\
                                                vim\\
+                                               tmux\\
                                                openssh-server" >> $FILE_NAME
 
 if [ "$SUDO" = "y" ] || [ "$SUDO" = "Y" ]; then
@@ -189,11 +192,13 @@ RUN apt-get update\\
  && apt-get install -y software-properties-common\\
  && add-apt-repository ppa:deadsnakes/ppa\\
  && apt-get update\\
+ && apt-get install -y \${PYTHON_VERSION}-distutils\\
  && apt-get install -y \${PYTHON_VERSION} \${PYTHON_VERSION}-dev python3-distutils-extra\\
  && wget -O ~/get-pip.py https://bootstrap.pypa.io/get-pip.py\\
  && \${PYTHON_VERSION} ~/get-pip.py\\
  && ln -s /usr/bin/\${PYTHON_VERSION} /usr/local/bin/python3\\
- && ln -s /usr/bin/\${PYTHON_VERSION} /usr/local/bin/python" >> $FILE_NAME
+ && ln -s /usr/bin/\${PYTHON_VERSION} /usr/local/bin/python\\
+ && wget -O- https://aka.ms/install-vscode-server/setup.sh | sh" >> $FILE_NAME
  
 echo \
 "
@@ -221,6 +226,14 @@ cmake -D CMAKE_BUILD_TYPE=RELEASE \\
           .. &&\\
     make -j"$(nproc)" install && \\
     ln -s /usr/local/include/opencv4/opencv2 /usr/local/include/opencv2" >> $FILE_NAME
+
+echo \
+"
+COPY ./requirements/_requirements_base.txt /opt/
+COPY ./requirements/requirements_nvidia.txt /opt/
+RUN python -m pip --no-cache-dir install -r /opt/requirements_nvidia.txt && rm /opt/_requirements_base.txt && rm /opt/requirements_nvidia.txt
+RUN python -m pip install jupyter matplotlib tqdm
+RUN python -m pip install jupyter_http_over_ws" >> $FILE_NAME
     
 echo \
 "
@@ -230,23 +243,51 @@ echo \
 # =======================================================
 COPY requirements.txt \$WORK_DIR
 RUN pip install -r requirements.txt &&\\
-    pip install bhtsne \\
+    pip install bhtsne &&\\
     pip install 'python-lsp-server[all]'">> $FILE_NAME
+
+echo \
+"
+# =======================================================
+# Pytorch version 1.10.1
+# =======================================================">> $FILE_NAME
+if [ "$CUDA_VER" = "11.4.0" ]; then
+  echo \
+  "RUN pip install torch torchvision torchaudio">> $FILE_NAME
+elif [ "$CUDA_VER" = "10.2" ]; then
+  echo \
+  "RUN pip install torch==1.10.1+cu102 torchvision==0.11.2+cu102 torchaudio==0.10.1 -f https://download.pytorch.org/whl/cu102/torch_stable.html">> $FILE_NAME
+fi
+
+echo \
+"
+# ========================================
+# VS Code Server
+# ========================================
+RUN apt-get update &&\\
+    apt-get install -y locales &&\\
+    locale-gen ja_JP.UTF-8 &&\\
+    echo \"export LANG=ja_JP.UTF-8\" >> ~/.bashrc
+RUN apt-get update && apt-get install -y curl
+RUN curl -fsSL https://code-server/dev/install.sh | sh
+#RUN code-server \ 
+#  --install-extension ms-python.python \
+#  --install-extension ms-ceintl.vscode-language-pack-ja" >> $FILE_NAME
+
     
 echo \
 "
 # =========================================
 # Jupyter setting
 # =========================================
-RUN jupyter labextension install @jupyterlab/toc \\
-    @axlair/jupyterlab_vim \\
-    @ryantam626/jupyterlab_code_formatter \\
-    @jupyter-widgets/jupyterlab-manager \\
-    jupyterlab-plotly@4.14.3 \\
-    jupyterlab-vimrc
+#RUN jupyter labextension install @jupyterlab/toc \\
+#    @axlair/jupyterlab_vim \\
+#    @ryantam626/jupyterlab_code_formatter \\
+#    @jupyter-widgets/jupyterlab-manager \\
+#    jupyterlab-plotly@4.14.3
 RUN jupyter nbextensions_configurator enable
 RUN jupyter labextension enable toc jupyterlab-manager
-RUN jupyter serverextension enable --py jupyterlab_code_formatter
+#RUN jupyter serverextension enable --py jupyterlab_code_formatter
 RUN jupyter notebook --generate-config --allow-root
 RUN ipython profile create
 RUN rm -rf ~/.cache/pip
