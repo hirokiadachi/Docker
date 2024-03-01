@@ -19,29 +19,29 @@ if [ "$TF" = "TRUE" ]; then
   done
 fi
 
-read -p "Select ubuntu version (18.04/20.04): " UBUNTU_VER
+read -p "Select ubuntu version (18.04/20.04/22.04): " UBUNTU_VER
 while :
 do
-  if [ "$UBUNTU_VER" = "18.04" ] || [ "$UBUNTU_VER" = "20.04" ]; then
+  if [ "$UBUNTU_VER" = "18.04" ] || [ "$UBUNTU_VER" = "20.04" ] || [ "$UBUNTU_VER" = "22.04" ]; then
       echo "==> Use ubuntu version: $UBUNTU_VER"
       break
   else
-      read -p "Select ubuntu version (18.04/20.04): " UBUNTU_VER
+      read -p "Select ubuntu version (18.04/20.04/22.04): " UBUNTU_VER
   fi
 done
 
-read -p "Select cuda version (10.2/11.7.1): " CUDA_VER
+read -p "Select cuda version (10.2/11.4.0/12.0.1): " CUDA_VER
 while :
 do
-  if [ "$CUDA_VER" = "10.2" ] || [ "$CUDA_VER" = "11.7.1" ]; then
+  if [ "$CUDA_VER" = "10.2" ] || [ "$CUDA_VER" = "11.4.0" ] || [ "$CUDA_VER" = "12.0.1" ]; then
     echo "==> Use cuda version: $CUDA_VER"
     break
   else
-    read -p "Select cuda version (10.2/11.7.1): " CUDA_VER
+    read -p "Select cuda version (10.2/11.4.0/12.0.1): " CUDA_VER
   fi
 done
 
-id 
+id
 read -p "Type your USER ID: " UID
 while :
 do
@@ -94,9 +94,9 @@ do
 done
 
 if [ "$UBUNTU_VER" = "18.04" ]; then
-  PYTHON_VER=python3.7
-elif [ "$UBUNTU_VER" = "20.04" ]; then
-  PYTHON_VER=python3.7
+  PYTHON_VER=python3.9
+elif [ "$UBUNTU_VER" = "22.04" ]; then
+  PYTHON_VER=python3.9
 fi
 
 echo \
@@ -148,7 +148,7 @@ RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/
 RUN apt-get update -y &&\\
     apt-get upgrade -y &&\\
     apt-get install -y libgl1-mesa-dev
- 
+
 RUN apt-get install -y --no-install-recommends build-essential\\
                                                apt-utils\\
                                                ca-certificates\\
@@ -173,8 +173,7 @@ fi
 
 echo \
 "
-RUN curl -sL https://deb.nodesource.com/setup_12.x | bash - \
-    && apt-get install -y nodejs
+RUN curl -sL https://deb.nodesource.com/setup_16.x -o /tmp/nodesource_setup.sh | bash -     && apt-get install -y nodejs
 RUN apt-get autoremove -y
 RUN apt-get clean
 RUN rm -rf /var/lib/apt/lists/* \\
@@ -199,7 +198,7 @@ RUN apt-get update\\
  && ln -s /usr/bin/\${PYTHON_VERSION} /usr/local/bin/python3\\
  && ln -s /usr/bin/\${PYTHON_VERSION} /usr/local/bin/python\\
  && wget -O- https://aka.ms/install-vscode-server/setup.sh | sh" >> $FILE_NAME
- 
+
 echo \
 "
 # =========================================
@@ -234,7 +233,7 @@ COPY ./requirements/requirements_nvidia.txt /opt/
 RUN python -m pip --no-cache-dir install -r /opt/requirements_nvidia.txt && rm /opt/_requirements_base.txt && rm /opt/requirements_nvidia.txt
 RUN python -m pip install jupyter matplotlib tqdm
 RUN python -m pip install jupyter_http_over_ws" >> $FILE_NAME
-    
+
 echo \
 "
 # =======================================================
@@ -253,7 +252,7 @@ echo \
 # =======================================================">> $FILE_NAME
 if [ "$CUDA_VER" = "11.4.0" ]; then
   echo \
-  "RUN pip install torch torchvision torchaudio">> $FILE_NAME
+  "RUN pip install torch==1.10.1+cu111 torchvision==0.11.2+cu111 torchaudio==0.10.1 -f https://download.pytorch.org/whl/cu111/torch_stable.html">> $FILE_NAME
 elif [ "$CUDA_VER" = "10.2" ]; then
   echo \
   "RUN pip install torch==1.10.1+cu102 torchvision==0.11.2+cu102 torchaudio==0.10.1 -f https://download.pytorch.org/whl/cu102/torch_stable.html">> $FILE_NAME
@@ -270,11 +269,11 @@ RUN apt-get update &&\\
     echo \"export LANG=ja_JP.UTF-8\" >> ~/.bashrc
 RUN apt-get update && apt-get install -y curl
 RUN curl -fsSL https://code-server/dev/install.sh | sh
-#RUN code-server \ 
+#RUN code-server \
 #  --install-extension ms-python.python \
 #  --install-extension ms-ceintl.vscode-language-pack-ja" >> $FILE_NAME
 
-    
+
 echo \
 "
 # =========================================
@@ -291,7 +290,7 @@ RUN jupyter labextension enable toc jupyterlab-manager
 RUN jupyter notebook --generate-config --allow-root
 RUN ipython profile create
 RUN rm -rf ~/.cache/pip
- 
+
 WORKDIR /
 COPY jupyter_lab_config.py /root/.jupyter/" >> $FILE_NAME
 

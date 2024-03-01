@@ -71,12 +71,12 @@ Container name : $CONTAINER_NAME
 Docker image   : $DOCKER_IMAGE
 "
 read -p "These arguments are true? (y/n): " CONFIRM
-  
+
   if [ "$CONFIRM" = "y" ] || [ "$CONFIRM" = "Y" ]; then
     break
   elif [ "$CONFIRM" = "n" ] || [ "$CONFIRM" = "n" ]; then
     read -p "Which setting do you want to change? (port/mount/name/image): " FIX
-    
+
     if [ "$FIX" = "port" ]; then
       read -p "Type port name: " PORT
     elif [ "$FIX" = "mount" ]; then
@@ -88,7 +88,7 @@ read -p "These arguments are true? (y/n): " CONFIRM
     else
       read -p "Which setting do you want to change? (port/mount/name/image): " FIX
     fi
-    
+
   else
     read -p "These arguments are true? (y/n): " CONFIRM
   fi
@@ -111,7 +111,7 @@ if [ "$JUPYTER" = "y" ] || [ "$JUPYTER" = "Y" ]; then
         jupyter lab --no-browser --ip=0.0.0.0 --allow-root --NotebookApp.token= --notebook-dir='/home'
 else
     echo "Build docker container with $DOCKER_IMAGE"
-    docker run --runtime=nvidia --shm-size=8g --rm -it -u $ID:$ID -p $PORT:8888 \
+    docker run --gpus=all --shm-size=8g --rm -it -u $ID:$ID -p $PORT:8888 \
         -v $MOUNT_DIR:/home/workspace --ipc=host --name $CONTAINER_NAME \
         $DOCKER_IMAGE
 fi
