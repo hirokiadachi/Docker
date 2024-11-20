@@ -49,3 +49,5 @@ decord
 transformers
 iopath
 axial-positional-embedding
+continuum
+wandb

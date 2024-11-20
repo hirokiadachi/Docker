@@ -106,12 +106,12 @@ done
 if [ "$JUPYTER" = "y" ] || [ "$JUPYTER" = "Y" ]; then
     echo "Build docker container with $DOCKER_IMAGE and launch jupyter lab in the container"
     docker run --gpus=all --shm-size=8g --rm -it -u $ID:$ID -p $PORT:8888 \
-        -v $MOUNT_DIR:/home/workspace --ipc=host --name $CONTAINER_NAME \
+        -v $MOUNT_DIR:/home/workspace -v /mnt/disk1:/home/disk1 -v /mnt/disk2:/home/disk2  --ipc=host --name $CONTAINER_NAME \
         $DOCKER_IMAGE\
         jupyter lab --no-browser --ip=0.0.0.0 --allow-root --NotebookApp.token= --notebook-dir='/home'
 else
     echo "Build docker container with $DOCKER_IMAGE"
-    docker run --runtime=nvidia --shm-size=8g --rm -it -u $ID:$ID -p $PORT:8888 \
-        -v $MOUNT_DIR:/home/workspace --ipc=host --name $CONTAINER_NAME \
+    docker run --gpus=all --shm-size=8g --rm -it -u $ID:$ID -p $PORT:8888 \
+        -v $MOUNT_DIR:/home/workspace -v /mnt/disk1:/home/disk1 -v /mnt/disk2:/home/disk2  --ipc=host --name $CONTAINER_NAME \
         $DOCKER_IMAGE
 fi

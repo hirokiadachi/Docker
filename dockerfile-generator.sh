@@ -19,25 +19,25 @@ if [ "$TF" = "TRUE" ]; then
   done
 fi
 
-read -p "Select ubuntu version (18.04/20.04): " UBUNTU_VER
+read -p "Select ubuntu version (18.04/20.04/22.04): " UBUNTU_VER
 while :
 do
-  if [ "$UBUNTU_VER" = "18.04" ] || [ "$UBUNTU_VER" = "20.04" ]; then
+  if [ "$UBUNTU_VER" = "18.04" ] || [ "$UBUNTU_VER" = "20.04" ] || [ "$UBUNTU_VER" = "22.04" ]; then
       echo "==> Use ubuntu version: $UBUNTU_VER"
       break
   else
-      read -p "Select ubuntu version (18.04/20.04): " UBUNTU_VER
+      read -p "Select ubuntu version (18.04/20.04/22.04): " UBUNTU_VER
   fi
 done
 
-read -p "Select cuda version (10.2/11.7.1): " CUDA_VER
+read -p "Select cuda version (10.2/11.4.0/12.0.1): " CUDA_VER
 while :
 do
-  if [ "$CUDA_VER" = "10.2" ] || [ "$CUDA_VER" = "11.7.1" ]; then
+  if [ "$CUDA_VER" = "10.2" ] || [ "$CUDA_VER" = "11.4.0" ] || [ "$CUDA_VER" = "12.0.1" ]; then
     echo "==> Use cuda version: $CUDA_VER"
     break
   else
-    read -p "Select cuda version (10.2/11.7.1): " CUDA_VER
+    read -p "Select cuda version (10.2/11.4.0/12.0.1): " CUDA_VER
   fi
 done
 
@@ -94,9 +94,9 @@ do
 done
 
 if [ "$UBUNTU_VER" = "18.04" ]; then
-  PYTHON_VER=python3.7
-elif [ "$UBUNTU_VER" = "20.04" ]; then
-  PYTHON_VER=python3.7
+  PYTHON_VER=python3.9
+elif [ "$UBUNTU_VER" = "22.04" ]; then
+  PYTHON_VER=python3.9
 fi
 
 echo \
@@ -105,7 +105,7 @@ echo \
 # Image build:
 #   docker build --force-rm=true --rm=true -t {REPOSITORY}:{TAG} --no-cache=true .
 # Container build:
-#   docker run --runtim=nvidia --rm -it -u {USER ID}:{GROUP ID} -p {PORT NUM}:8888 -v {local dir}:/home/{USER NAME} --ipc=host --name {CONTAINER NAME} {REPOSITORY}:{TAG}
+#   docker run --gpu=all --rm -it -u {USER ID}:{GROUP ID} -p {PORT NUM}:8888 -v {local dir}:/home/{USER NAME} --ipc=host --name {CONTAINER NAME} {REPOSITORY}:{TAG}
 #####################################################################
 
 # =========================================
@@ -173,8 +173,7 @@ fi
 
 echo \
 "
-RUN curl -sL https://deb.nodesource.com/setup_12.x | bash - \
-    && apt-get install -y nodejs
+RUN curl -sL https://deb.nodesource.com/setup_16.x -o /tmp/nodesource_setup.sh | bash - && apt-get install -y nodejs \
 RUN apt-get autoremove -y
 RUN apt-get clean
 RUN rm -rf /var/lib/apt/lists/* \\
@@ -253,7 +252,7 @@ echo \
 # =======================================================">> $FILE_NAME
 if [ "$CUDA_VER" = "11.4.0" ]; then
   echo \
-  "RUN pip install torch torchvision torchaudio">> $FILE_NAME
+  "RUN pip install torch==1.10.1+cu111 torchvision==0.11.2+cu111 torchaudio==0.10.1 -f https://download.pytorch.org/whl/cu111/torch_stable.html">> $FILE_NAME
 elif [ "$CUDA_VER" = "10.2" ]; then
   echo \
   "RUN pip install torch==1.10.1+cu102 torchvision==0.11.2+cu102 torchaudio==0.10.1 -f https://download.pytorch.org/whl/cu102/torch_stable.html">> $FILE_NAME
