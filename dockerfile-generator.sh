@@ -96,7 +96,7 @@ done
 if [ "$UBUNTU_VER" = "18.04" ]; then
   PYTHON_VER=python3.9
 elif [ "$UBUNTU_VER" = "22.04" ]; then
-  PYTHON_VER=python3.9
+  PYTHON_VER=python3.10
 fi
 
 echo \
@@ -125,14 +125,18 @@ ARG USER_NAME=$USER_NAME
 ARG PASSWORD=$PW
 ARG PYTHON_VERSION=$PYTHON_VER
 
-ENV LD_LIBRARY_PATH=/usr/local/lib:\${LD_LIBRARY_PATH}
-ENV CPATH=/usr/local/include:\${CPATH}
+ENV LD_LIBRARY_PATH=/usr/local/lib:
+ENV CPATH=/usr/local/include:
 ENV CUDA_PATH=/usr/local/cuda
-ENV CPATH=\${CUDA_PATH}/include:\${CPATH}
-ENV LD_LIBRARY_PATH=\${CUDA_PATH}/lib64:\${CUDA_PATH}/lib:\${LD_LIBRARY_PATH}
+ENV CPATH=${CUDA_PATH}/include:${CPATH}
+ENV LD_LIBRARY_PATH=${CUDA_PATH}/lib64:${CUDA_PATH}/lib:${LD_LIBRARY_PATH}
 ENV DEBIAN_FRONTEND=noninteractive
-ENV WORK_DIR=/root/\${USER_NAME}
+ENV WORK_DIR=/home/hrk
+
+# Working directory
 WORKDIR \$WORK_DIR
+
+# Set timezone and other locale settings
 RUN ln -sf /usr/share/zoneinfo/Asia/Tokyo /etc/localtime" >> $FILE_NAME
 
 echo \
@@ -140,90 +144,109 @@ echo \
 # =========================================
 # Ubuntu setting
 # =========================================
-RUN rm -rf /var/lib/apt/lists/*\\
-            /etc/apt/source.list.d/cuda.list\\
+RUN apt-get update && apt-get upgrade -y && apt-get install -y \
+    libgl1-mesa-dev \
+    build-essential \
+    apt-utils \
+    ca-certificates \
+    make \
+    cmake \
+    wget \
+    git \
+    curl \
+    vim \
+    tmux \
+    openssh-server \
+    sudo \
+    locales \
+    unzip \
+    software-properties-common \
+    python3-distutils-extra \
+    && rm -rf /var/lib/apt/lists/*
+    
+# =========================================
+# Add CUDA repository (NVIDIA key and repo setup)
+# =========================================
+RUN rm -rf /var/lib/apt/lists/*\
+            /etc/apt/source.list.d/cuda.list\
             /etc/apt/source.list.d/nvidia-ml.list
 
 RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/3bf863cc.pub
-RUN apt-get update -y &&\\
-    apt-get upgrade -y &&\\
-    apt-get install -y libgl1-mesa-dev
- 
-RUN apt-get install -y --no-install-recommends build-essential\\
-                                               apt-utils\\
-                                               ca-certificates\\
-                                               make\\
-                                               cmake\\
-                                               wget\\
-                                               git\\
-                                               curl\\
-                                               vim\\
-                                               tmux\\
-                                               openssh-server" >> $FILE_NAME
+RUN apt-get update -y &&\
+    apt-get upgrade -y
+RUN apt-get install -y nvidia-container-toolkit" >> $FILE_NAME
 
 if [ "$SUDO" = "y" ] || [ "$SUDO" = "Y" ]; then
 echo \
 "
-RUN apt-get install -y --no-install-recommends sudo
-RUN groupadd -g \${GID} \${USER_NAME} && \\
-    useradd -m -s /bin/bash -u \${UID} -g \${GID} -G sudo \${USER_NAME} && \\
-    echo \"\${USER_NAME}:\${USER_NAME}\" | chpasswd && \\
-    echo \"%\${USER_NAME}    ALL=(ALL)   NOPASSWD:    ALL\"  >> /etc/sudoers" >> $FILE_NAME
+# =========================================
+# Create user and set permissions
+# =========================================
+RUN groupadd -g \$GID \$USER_NAME && \
+    useradd -m -s /bin/bash -u \$UID -g \$GID -G sudo \$USER_NAME && \
+    echo \"\$USER_NAME:\$PASSWORD\" | chpasswd && \
+    echo \"%\$USER_NAME ALL=(ALL) NOPASSWD: ALL\" >> /etc/sudoers && \
+    mkdir -p /home/\$USER_NAME/.config /home/\$USER_NAME/.cache /home/\$USER_NAME/.npm && \
+    chown -R \$USER_NAME:\$USER_NAME /home/\$USER_NAME
+
+
+USER \$USER_NAME
+
+# Set environment variables for the user
+ENV XDG_CONFIG_HOME=/home/\$USER_NAME/.config
+ENV NPM_CONFIG_PREFIX=/home/\$USER_NAME/.npm" >> $FILE_NAME
 fi
 
 echo \
 "
-RUN curl -sL https://deb.nodesource.com/setup_16.x -o /tmp/nodesource_setup.sh | bash - && apt-get install -y nodejs \
-RUN apt-get autoremove -y
-RUN apt-get clean
-RUN rm -rf /var/lib/apt/lists/* \\
-           /var/cache/apt/* \\
-           /usr/local/src/* \\
-           /tmp/*" >> $FILE_NAME
+# =========================================
+# Install Node.js (LTS)
+# =========================================
+USER root
+RUN curl -sL https://deb.nodesource.com/setup_20.x -o /tmp/nodesource_setup.sh && \
+    bash /tmp/nodesource_setup.sh && \
+    apt-get update && apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/*" >> $FILE_NAME
 
 echo \
 "
 # =========================================
 # Python setting
 # =========================================
-RUN apt-get update\\
- && apt-get install unzip\\
- && apt-get install -y software-properties-common\\
- && add-apt-repository ppa:deadsnakes/ppa\\
- && apt-get update\\
- && apt-get install -y \${PYTHON_VERSION}-distutils\\
- && apt-get install -y \${PYTHON_VERSION} \${PYTHON_VERSION}-dev python3-distutils-extra\\
- && wget -O ~/get-pip.py https://bootstrap.pypa.io/get-pip.py\\
- && \${PYTHON_VERSION} ~/get-pip.py\\
- && ln -s /usr/bin/\${PYTHON_VERSION} /usr/local/bin/python3\\
- && ln -s /usr/bin/\${PYTHON_VERSION} /usr/local/bin/python\\
- && wget -O- https://aka.ms/install-vscode-server/setup.sh | sh" >> $FILE_NAME
+RUN add-apt-repository ppa:deadsnakes/ppa && apt-get update && \
+    apt-get install -y \$PYTHON_VERSION \$PYTHON_VERSION-dev python3-distutils-extra && \
+    wget -O ~/get-pip.py https://bootstrap.pypa.io/get-pip.py && \
+    \$PYTHON_VERSION ~/get-pip.py && \
+    ln -s /usr/bin/\$PYTHON_VERSION /usr/local/bin/python3 && \
+    ln -s /usr/bin/\$PYTHON_VERSION /usr/local/bin/python" >> $FILE_NAME
  
 echo \
 "
 # =========================================
-# Install OpenCV
+# Install OpenCV dependencies
 # =========================================
-RUN apt-get install -y --no-install-recommends libatlas-base-dev\\
-        libgflags-dev \\
-        libgoogle-glog-dev \\
-        libhdf5-serial-dev \\
-        libleveldb-dev \\
-        liblmdb-dev \\
-        libprotobuf-dev \\
-        libsnappy-dev \\
-        protobuf-compiler
-RUN git clone --branch 4.0.1 https://github.com/opencv/opencv ~/opencv && \\
-mkdir -p ~/opencv/build && cd ~/opencv/build && \\
-cmake -D CMAKE_BUILD_TYPE=RELEASE \\
-          -D CMAKE_INSTALL_PREFIX=/usr/local \\
-          -D WITH_IPP=OFF \\
-          -D WITH_CUDA=OFF \\
-          -D WITH_OPENCL=OFF \\
-          -D BUILD_TESTS=OFF \\
-          -D BUILD_PERF_TESTS=OFF \\
-          .. &&\\
-    make -j"$(nproc)" install && \\
+RUN apt-get install -y --no-install-recommends \
+    libatlas-base-dev \
+    libgflags-dev \
+    libgoogle-glog-dev \
+    libhdf5-serial-dev \
+    libleveldb-dev \
+    liblmdb-dev \
+    libprotobuf-dev \
+    libsnappy-dev \
+    protobuf-compiler
+
+RUN git clone --branch 4.0.1 https://github.com/opencv/opencv ~/opencv && \
+    mkdir -p ~/opencv/build && cd ~/opencv/build && \
+    cmake -D CMAKE_BUILD_TYPE=RELEASE \
+          -D CMAKE_INSTALL_PREFIX=/usr/local \
+          -D WITH_IPP=OFF \
+          -D WITH_CUDA=OFF \
+          -D WITH_OPENCL=OFF \
+          -D BUILD_TESTS=OFF \
+          -D BUILD_PERF_TESTS=OFF \
+          .. && \
+    make -j"$(nproc)" install && \
     ln -s /usr/local/include/opencv4/opencv2 /usr/local/include/opencv2" >> $FILE_NAME
 
 echo \
@@ -236,65 +259,46 @@ RUN python -m pip install jupyter_http_over_ws" >> $FILE_NAME
     
 echo \
 "
-# =======================================================
-# Install python modules
-#   * Require requirements.txt to install python modules
-# =======================================================
+# =========================================
+# Install Python requirements (from multiple files)
+# =========================================
+COPY ./requirements/_requirements_base.txt /opt/
+COPY ./requirements/requirements_nvidia.txt /opt/
+RUN python -m pip --no-cache-dir install -r /opt/requirements_nvidia.txt && \
+    rm /opt/_requirements_base.txt && rm /opt/requirements_nvidia.txt
+
+RUN python -m pip install jupyter matplotlib tqdm && \
+    python -m pip install jupyter_http_over_ws
+
+# Install additional Python modules
 COPY requirements.txt \$WORK_DIR
-RUN pip install -r requirements.txt &&\\
-    pip install bhtsne &&\\
-    pip install 'python-lsp-server[all]'">> $FILE_NAME
+RUN pip install -r requirements.txt">> $FILE_NAME
 
 echo \
 "
-# =======================================================
-# Pytorch version 1.10.1
-# =======================================================">> $FILE_NAME
-if [ "$CUDA_VER" = "11.4.0" ]; then
-  echo \
-  "RUN pip install torch==1.10.1+cu111 torchvision==0.11.2+cu111 torchaudio==0.10.1 -f https://download.pytorch.org/whl/cu111/torch_stable.html">> $FILE_NAME
-elif [ "$CUDA_VER" = "10.2" ]; then
-  echo \
-  "RUN pip install torch==1.10.1+cu102 torchvision==0.11.2+cu102 torchaudio==0.10.1 -f https://download.pytorch.org/whl/cu102/torch_stable.html">> $FILE_NAME
-fi
-
-echo \
-"
-# ========================================
-# VS Code Server
-# ========================================
-RUN apt-get update &&\\
-    apt-get install -y locales &&\\
-    locale-gen ja_JP.UTF-8 &&\\
-    echo \"export LANG=ja_JP.UTF-8\" >> ~/.bashrc
-RUN apt-get update && apt-get install -y curl
-RUN curl -fsSL https://code-server/dev/install.sh | sh
-#RUN code-server \ 
-#  --install-extension ms-python.python \
-#  --install-extension ms-ceintl.vscode-language-pack-ja" >> $FILE_NAME
-
+# =========================================
+# VS Code Server installation
+# =========================================
+RUN curl -fsSL https://code-server.dev/install.sh | sh && \
+    code-server --install-extension ms-python.python --install-extension ms-ceintl.vscode-language-pack-ja">> $FILE_NAME
     
 echo \
 "
 # =========================================
 # Jupyter setting
 # =========================================
-#RUN jupyter labextension install @jupyterlab/toc \\
-#    @axlair/jupyterlab_vim \\
-#    @ryantam626/jupyterlab_code_formatter \\
-#    @jupyter-widgets/jupyterlab-manager \\
-#    jupyterlab-plotly@4.14.3
-RUN jupyter nbextensions_configurator enable
-RUN jupyter labextension enable toc jupyterlab-manager
-#RUN jupyter serverextension enable --py jupyterlab_code_formatter
-RUN jupyter notebook --generate-config --allow-root
-RUN ipython profile create
-RUN rm -rf ~/.cache/pip
- 
-WORKDIR /
-COPY jupyter_lab_config.py /root/.jupyter/" >> $FILE_NAME
+RUN pip install --upgrade jupyterlab
+RUN pip install jupyterlab matplotlib tqdm jupyter_http_over_ws && \
+    jupyter labextension install @axlair/jupyterlab_vim @ryantam626/jupyterlab_code_formatter jupyterlab-plotly@4.14.3 && \
+    jupyter nbextensions_configurator enable" >> $FILE_NAME
 
 echo \
 "
-USER \${USER_NAME}
-EXPOSE 8888 6006" >> $FILE_NAME
+# Clean up
+RUN rm -rf /var/lib/apt/lists/* /var/cache/apt/* /usr/local/src/* /tmp/* /root/.cache/pip
+
+# Expose ports for Jupyter and VSCode
+EXPOSE 8888 6006
+
+# Set the final working directory
+WORKDIR \$WORK_DIR" >> $FILE_NAME
